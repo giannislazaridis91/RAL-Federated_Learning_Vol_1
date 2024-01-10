@@ -129,7 +129,7 @@ class DQN:
         """
         
         if not self._initialized:
-            self.session.run(tf.global_variables_initializer())      
+            self.session.run(tf.compat.v1.global_variables_initializer())      
             self._initialized = True
 
 

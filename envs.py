@@ -208,10 +208,10 @@ class LalEnv(object):
         2) next_action that characterizes all possible actions (unlabeled datapoints) that can be taken at the next step.
         
         Returns:
-            state:   A numpy.ndarray of size of number of datapoints in dataset.state_data 
-                                characterizing the current classifier and, thus, the state of the environment.
-            next_action:  A numpy.ndarray of size #features characterizing actions (currently, 3) x #unlabeled datapoints 
-                                where each column corresponds to the vector characterizing each possible action.
+            state:          A numpy.ndarray of size of number of datapoints in dataset.state_data 
+                            characterizing the current classifier and, thus, the state of the environment.
+            next_action:    A numpy.ndarray of size #features characterizing actions (currently, 3) x #unlabeled datapoints 
+                            where each column corresponds to the vector characterizing each possible action.
         """
 
         # COMPUTE state.
@@ -363,21 +363,36 @@ class LalEnvFirstAccuracy(LalEnv):
     
 
 
-    def _find_batch_size(self, batch, reward, n_actions, max_batch):
+    def _find_batch_size(self, batch, reward, n_actions, max_batch, batch_step, positive_reward_increase_batch):
 
-        if reward > 0 and (batch+5) <= n_actions:
-            batch = batch+5
-            if batch > max_batch:
-                batch = max_batch
-        elif reward < 0 and (batch-5>0) and (batch-5) <= n_actions:
-            batch = batch-5
-            if batch > max_batch:
-                batch = max_batch
+        if positive_reward_increase_batch:
+            if reward > 0 and (batch+batch_step) <= n_actions:
+                batch = batch+batch_step
+                if batch > max_batch:
+                    batch = max_batch
+            elif reward < 0 and (batch-batch_step>0) and (batch-batch_step) <= n_actions:
+                batch = batch-batch_step
+                if batch > max_batch:
+                    batch = max_batch
+            else:
+                batch = batch
+                if batch > max_batch:
+                    batch = max_batch
+            return batch
         else:
-            batch = batch
-            if batch > max_batch:
-                batch = max_batch
-        return batch
+            if reward < 0 and (batch+batch_step) <= n_actions:
+                batch = batch+batch_step
+                if batch > max_batch:
+                    batch = max_batch
+            elif reward > 0 and (batch-batch_step>0) and (batch-batch_step) <= n_actions:
+                batch = batch-batch_step
+                if batch > max_batch:
+                    batch = max_batch
+            else:
+                batch = batch
+                if batch > max_batch:
+                    batch = max_batch
+            return batch           
 
 
 
