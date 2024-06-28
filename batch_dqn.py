@@ -47,14 +47,11 @@ class DQN:
             nn.init.xavier_uniform_(m.weight)
             m.bias.data.fill_(0.01)
 
-    """     
     def get_action(self, dataset, model, state, next_action_batch, next_action_unlabeled_data):
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        # Counter of how many times this function was called.
         self.i_actions_taken += 1
         self._check_initialized()
 
-        # Convert inputs to NumPy arrays if they are not already
         if not isinstance(state, np.ndarray):
             state = state.cpu().numpy()
         if not isinstance(next_action_batch, np.ndarray):
@@ -64,14 +61,16 @@ class DQN:
         if not isinstance(next_action_unlabeled_data, np.ndarray):
             next_action_unlabeled_data = next_action_unlabeled_data.cpu().numpy()
 
-        # Repeat classification_state so that we have a copy of classification state for each possible action.
         state = np.repeat([state], len(next_action_batch), axis=0)
 
-        # Convert to torch tensors
         state_tensor = torch.from_numpy(state).float().to(device)
         next_action_batch_tensor = torch.from_numpy(next_action_batch).float().to(device)
 
-        # Predict q-values with current estimator.
+        if state_tensor.dim() == 1:
+            state_tensor = state_tensor.unsqueeze(0)
+        if next_action_batch_tensor.dim() == 1:
+            next_action_batch_tensor = next_action_batch_tensor.unsqueeze(0)
+
         with torch.no_grad():
             predictions = self.estimator(state_tensor, next_action_batch_tensor)
 
@@ -80,171 +79,22 @@ class DQN:
 
         input_data = dataset.agent_data[next_action_unlabeled_data, :]
 
-        # Get the input data for the classifier
-        # input_data = dataset.train_data[next_action_unlabeled_data, :]
+        # Print input data shape for debugging
+        print(f"Input data shape: {input_data.shape}")
 
-        # Ensure the input data has the correct shape and number of channels
-        if input_data.shape[1] != 3:
-            raise ValueError(f"Expected input data to have 3 channels, but got {input_data.shape[1]} channels instead")
+        # Correcting input data shape to check the last dimension
+        if input_data.shape[-1] != 3:
+            raise ValueError(f"Expected input data to have 3 channels, but got {input_data.shape[-1]} channels instead")
 
-        # Convert to torch tensor and send to device
-        input_data_tensor = torch.from_numpy(input_data).float().to(device)
-
-        # Get the class probabilities
-        with torch.no_grad():
-            train_predictions = model(input_data_tensor)
-
-        # Uncertainty sampling
-        uncertainty_scores = -np.abs(train_predictions[:, 0].cpu().numpy())
-        selected_indices = np.argsort(uncertainty_scores)[:selected_batch]
-
-        if isinstance(selected_batch, torch.Tensor):
-            selected_batch = selected_batch.cpu()
-
-        return selected_batch, selected_indices """
-    
-    """ def get_action(self, dataset, model, state, next_action_batch, next_action_unlabeled_data):
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        # Counter of how many times this function was called.
-        self.i_actions_taken += 1
-        self._check_initialized()
-
-        # Convert inputs to NumPy arrays if they are not already
-        if not isinstance(state, np.ndarray):
-            state = state.cpu().numpy()
-
-        if isinstance(next_action_batch, list):
-            next_action_batch = torch.tensor(next_action_batch).float().to(device)
-        elif not isinstance(next_action_batch, torch.Tensor):
-            next_action_batch = torch.tensor(next_action_batch).float().to(device)
-
-        if not isinstance(next_action_unlabeled_data, np.ndarray):
-            next_action_unlabeled_data = next_action_unlabeled_data.cpu().numpy()
-
-        # Ensure non-empty tensors for further processing
-        if state.size == 0:
-            state_tensor = torch.zeros((1, len(state))).float().to(device)
-        else:
-            state_tensor = torch.from_numpy(state).float().to(device)
-
-        if next_action_batch.size(0) == 0:
-            next_action_batch = torch.zeros(1).float().to(device)
-
-        print("state", state)
-        print("type(state)", type(state))
-        print("len(state)", len(state))
-
-        # Repeat classification_state so that we have a copy of classification state for each possible action.
-        state = np.repeat([state], len(next_action_batch), axis=0)
-
-        print("next_action_batch", next_action_batch)
-        print("type(next_action_batch)", type(next_action_batch))
-        print("len(next_action_batch)", len(next_action_batch))
-
-        # Convert to torch tensors
-        state_tensor = torch.from_numpy(state).float().to(device)
-        next_action_batch_tensor = torch.from_numpy(next_action_batch).float().to(device)
-
-        # Predict q-values with current estimator.
-        print("state_tensor",state_tensor)
-        print("type", type(state_tensor))
-        print("legth", len(state_tensor))
-
-        print("next_action_batch_tensor",next_action_batch_tensor)
-        print("type", type(next_action_batch_tensor))
-        print("legth", len(next_action_batch_tensor))
-        with torch.no_grad():
-            predictions = self.estimator(state_tensor, next_action_batch_tensor)
-
-        selected_batch = np.random.choice(np.where(predictions.cpu().numpy() == predictions.max().item())[0])
-        selected_batch = int(selected_batch)  # Ensure selected_batch is an integer index
-
-        input_data = dataset.agent_data[next_action_unlabeled_data, :]
-
-        # Get the input data for the classifier
-        # input_data = dataset.train_data[next_action_unlabeled_data, :]
-
-        # Ensure the input data has the correct shape and number of channels
-        if input_data.shape[1] != 3:
-            raise ValueError(f"Expected input data to have 3 channels, but got {input_data.shape[1]} channels instead")
-
-        # Convert to torch tensor and send to device
-        input_data_tensor = torch.from_numpy(input_data).float().to(device)
-
-        # Get the class probabilities
-        with torch.no_grad():
-            train_predictions = model(input_data_tensor)
-
-        # Uncertainty sampling
-        uncertainty_scores = -np.abs(train_predictions[:, 0].cpu().numpy())
-        selected_indices = np.argsort(uncertainty_scores)[:selected_batch]
-
-        if isinstance(selected_batch, torch.Tensor):
-            selected_batch = selected_batch.cpu()
-
-        return selected_batch, selected_indices """
-    
-    def get_action(self, dataset, model, state, next_action_batch, next_action_unlabeled_data):
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.i_actions_taken += 1
-        self._check_initialized()
-
-        # Convert inputs to NumPy arrays if they are not already
-        if not isinstance(state, np.ndarray):
-            state = state.cpu().numpy()
-
-        if isinstance(next_action_batch, list):
-            next_action_batch = torch.tensor(next_action_batch).float().to(device)
-        elif not isinstance(next_action_batch, torch.Tensor):
-            next_action_batch = torch.tensor(next_action_batch).float().to(device)
-
-        if not isinstance(next_action_unlabeled_data, np.ndarray):
-            next_action_unlabeled_data = next_action_unlabeled_data.cpu().numpy()
-
-        # Ensure non-empty tensors for further processing
-        if state.size == 0:
-            state_tensor = torch.zeros((1, len(state))).float().to(device)
-        else:
-            state_tensor = torch.from_numpy(state).float().to(device)
-
-        if next_action_batch.size(0) == 0:
-            next_action_batch = torch.zeros(1).float().to(device)
-        else:
-            next_action_batch = next_action_batch.to(device)
-
-        # Perform prediction with your model (Estimator in this case)
-        with torch.no_grad():
-            # Example: Assuming self.estimator is your Estimator model
-            x = torch.sigmoid(self.estimator.fc1(state_tensor))
-
-            # Concatenate x with action_input
-            if next_action_batch.numel() > 0:
-                action_input = next_action_batch.unsqueeze(0)
-                x = torch.cat((x, action_input), dim=1)
-                x = torch.sigmoid(self.estimator.fc2(x))
-                predictions = self.estimator.fc3(x)
-            else:
-                # Handle case where next_action_batch is empty or None
-                predictions = self.estimator.fc3(x)
-
-        # Select an action based on predictions (example random choice)
-        selected_batch = np.random.choice(np.where(predictions.cpu().numpy() == predictions.max().item())[0])
-        selected_batch = int(selected_batch)  # Ensure selected_batch is an integer index
-
-        # Get input data for classifier or other processing (example code)
-        input_data = dataset.agent_data[next_action_unlabeled_data, :]
-
-        # Perform additional operations as needed (example code)
-        if input_data.shape[1] != 3:
-            raise ValueError(f"Expected input data to have 3 channels, but got {input_data.shape[1]} channels instead")
+        # Ensure input_data is a NumPy array
+        if isinstance(input_data, torch.Tensor):
+            input_data = input_data.cpu().numpy()
 
         input_data_tensor = torch.from_numpy(input_data).float().to(device)
 
-        # Example: Perform model inference on input_data_tensor
         with torch.no_grad():
             train_predictions = model(input_data_tensor)
 
-        # Example: Uncertainty sampling or other processing (adjust as per your needs)
         uncertainty_scores = -np.abs(train_predictions[:, 0].cpu().numpy())
         selected_indices = np.argsort(uncertainty_scores)[:selected_batch]
 
@@ -252,7 +102,6 @@ class DQN:
             selected_batch = selected_batch.cpu()
 
         return selected_batch, selected_indices
-
 
     def train(self, minibatch):
         self._check_initialized()
