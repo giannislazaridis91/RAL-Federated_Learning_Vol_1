@@ -42,7 +42,6 @@ class LalEnv(object):
             if number_of_first_samples < self.number_of_classes:
                 print(f'number_of_first_samples {number_of_first_samples} is less than the number of classes {self.number_of_classes}, so we change it.')
                 number_of_first_samples = self.number_of_classes
-            print("number_of_first_samples", number_of_first_samples)
 
             self.indices_known = []
             self.indices_unknown = []
@@ -117,8 +116,8 @@ class LalEnv(object):
 
             self.indices_known = []
             self.indices_unknown = []
-            for i in np.unique(self.dataset.agent_labels):
-                cl = np.nonzero(self.dataset.agent_labels == i)[0]
+            for i in np.unique(self.dataset.agent_labels.numpy()):  # Convert torch.Tensor to numpy array.
+                cl = np.nonzero(self.dataset.agent_labels.numpy() == i)[0]
                 indices = np.random.permutation(cl)
                 self.indices_known.append(indices[0])
                 self.indices_unknown.extend(indices[1:])
@@ -180,6 +179,7 @@ class LalEnv(object):
             self.episode_qualities.append(best_val_acc)
             self.precision_bank.append(precision_scores)
             self.batch_bank.append(number_of_first_samples / len(self.dataset.agent_data))
+
         state, next_action = self._get_state()
         self.n_actions = np.size(self.indices_unknown)
 
@@ -189,6 +189,7 @@ class LalEnv(object):
         # The batch_actions_indices value indicates the positions
         # of the batch of data points in self.indices_unknown that we want to sample in unknown_data.
         # The index in train_data should be retrieved.
+
         if self.code_state == "Warm-Start":
 
             selection_absolute = self.indices_unknown[batch_actions_indices]
@@ -270,7 +271,6 @@ class LalEnv(object):
                 reward = reward.cpu()
             if isinstance(done, torch.Tensor):
                 done = done.cpu()
-
 
         if self.code_state == "Agent":
 
