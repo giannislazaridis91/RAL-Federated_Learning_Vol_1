@@ -407,7 +407,7 @@ class LalEnvFirstAccuracy(LalEnv):
 
     def _compute_is_terminal(self):
         done = super()._compute_is_terminal()
-        percentage_precision = 85
+        percentage_precision = 100
         percentage_budget = 50
         if self.code_state!="Warm-Start":
             if (((percentage_precision * self.target_precision) / 100) <= self.precision_bank[-1]) and (
